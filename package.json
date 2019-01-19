@@ -1,0 +1,40 @@
+{
+  "name": "pkmnx",
+  "version": "0.0.1",
+  "description": "Extensions to pkmn",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gamephreak/pkmnx.git"
+  },
+  "keywords": [
+    "Pokémon"
+  ],
+  "author": "Kirk Scheibelhut",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gamephreak/pkmnx/issues"
+  },
+  "dependencies": {
+    "@types/node": "^10.12.18"
+  },
+  "devDependencies": {
+    "@types/jest": "^23.3.12",
+    "gts": "^0.9.0",
+    "jest": "^23.6.0",
+    "source-map-support": "^0.5.9",
+    "ts-jest": "^23.10.5",
+    "typescript": "~3.1.0"
+  },
+  "scripts": {
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc -p .",
+    "fix": "gts fix",
+    "test": "jest",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run check"
+  }
+}
