@@ -47,3 +47,14 @@ export interface Species extends pkmn.Species {
   readonly eventPokemon?: Readonly<EventInfo[]>;
   readonly learnset?: Readonly<{[k: string]: MoveSource[]}>;
 }
+
+
+export class Species extends pkmn.Species {
+
+  static validMoves(moves: {[m: string]: 1}): {[m: string]: 1} {
+    return {};   // TODO
+  }
+
+
+
+}
