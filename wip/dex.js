@@ -351,3 +351,233 @@ includeFormats() {
 
 
 
+/**
+ * A RuleTable keeps track of the rules that a format has. The key can be:
+ * - '[ruleid]' the ID of a rule in effect
+ * - '-[thing]' or '-[category]:[thing]' ban a thing
+ * - '+[thing]' or '+[category]:[thing]' allow a thing (override a ban)
+ * [category] is one of: item, move, ability, species, basespecies
+ * @augments {Map<string, string>}
+ */
+// @ts-ignore TypeScript bug
+class RuleTable extends Map {
+	constructor() {
+		super();
+		/**
+		 * rule, source, limit, bans
+		 * @type {[string, string, number, string[]][]}
+		 */
+		this.complexBans = [];
+		/**
+		 * rule, source, limit, bans
+		 * @type {[string, string, number, string[]][]}
+		 */
+		this.complexTeamBans = [];
+		/** @type {[Function, string]?} */
+		this.checkLearnset = null;
+	}
+	/**
+	 * @param {string} thing
+	 * @param {{[id: string]: true}?} setHas
+	 * @return {string}
+	 */
+	check(thing, setHas = null) {
+		if (setHas) setHas[thing] = true;
+		return this.getReason('-' + thing);
+	}
+	/**
+	 * @param {string} key
+	 * @return {string}
+	 */
+	getReason(key) {
+		const source = this.get(key);
+		if (source === undefined) return '';
+		return source ? `banned by ${source}` : `banned`;
+	}
+
+	/**
+	 * @param {[string, string, number, string[]][]} complexBans
+	 * @param {string} rule
+	 * @return {number}
+	 */
+	getComplexBanIndex(complexBans, rule) {
+		let ruleId = toId(rule);
+		let complexBanIndex = -1;
+		for (let i = 0; i < complexBans.length; i++) {
+			if (toId(complexBans[i][0]) === ruleId) {
+				complexBanIndex = i;
+				break;
+			}
+		}
+		return complexBanIndex;
+	}
+
+	/**
+	 * @param {string} rule
+	 * @param {string} source
+	 * @param {number} limit
+	 * @param {string[]} bans
+	 */
+	addComplexBan(rule, source, limit, bans) {
+		let complexBanIndex = this.getComplexBanIndex(this.complexBans, rule);
+		if (complexBanIndex !== -1) {
+			if (this.complexBans[complexBanIndex][2] === Infinity) return;
+			this.complexBans[complexBanIndex] = [rule, source, limit, bans];
+		} else {
+			this.complexBans.push([rule, source, limit, bans]);
+		}
+	}
+
+	/**
+	 * @param {string} rule
+	 * @param {string} source
+	 * @param {number} limit
+	 * @param {string[]} bans
+	 */
+	addComplexTeamBan(rule, source, limit, bans) {
+		let complexBanTeamIndex = this.getComplexBanIndex(this.complexTeamBans, rule);
+		if (complexBanTeamIndex !== -1) {
+			if (this.complexTeamBans[complexBanTeamIndex][2] === Infinity) return;
+			this.complexTeamBans[complexBanTeamIndex] = [rule, source, limit, bans];
+		} else {
+			this.complexTeamBans.push([rule, source, limit, bans]);
+		}
+	}
+}
+
+class Format extends BasicEffect {
+	/**
+	 * @param {AnyObject} data
+	 * @param {?AnyObject} [moreData]
+	 * @param {?AnyObject} [moreData2]
+	 */
+	constructor(data, moreData = null, moreData2 = null) {
+		super(data, moreData, moreData2);
+		/** @type {string} */
+		this.mod = Tools.getString(this.mod) || 'gen7';
+		/**
+		 * Name of the team generator algorithm, if this format uses
+		 * random/fixed teams. null if players can bring teams.
+		 * @type {string | undefined}
+		 */
+		this.team = this.team;
+		/** @type {'Format' | 'Ruleset' | 'Rule' | 'ValidatorRule'} */
+		// @ts-ignore
+		this.effectType = Tools.getString(this.effectType) || 'Format';
+		/**
+		 * Whether or not debug battle messages should be shown.
+		 * @type {boolean}
+		 */
+		this.debug = !!this.debug;
+		/**
+		 * Whether or not a format will update ladder points if searched
+		 * for using the "Battle!" button.
+		 * (Challenge and tournament games will never update ladder points.)
+		 * (Defaults to `true`.)
+		 * @type {boolean}
+		 */
+		this.rated = (this.rated !== false);
+		/**
+		 * Game type.
+		 * @type {GameType}
+		 */
+		this.gameType = this.gameType || 'singles';
+		/**
+		 * List of rule names.
+		 * @type {string[]}
+		 */
+		this.ruleset = this.ruleset || [];
+		/**
+		 * Base list of rule names as specified in "./config/formats.js".
+		 * Used in a custom format to correctly display the altered ruleset.
+		 * @type {string[]}
+		 */
+		this.baseRuleset = this.baseRuleset || [];
+		/**
+		 * List of banned effects.
+		 * @type {string[]}
+		 */
+		this.banlist = this.banlist || [];
+		/**
+		 * List of inherited banned effects to override.
+		 * @type {string[]}
+		 */
+		this.unbanlist = this.unbanlist || [];
+		/**
+		 * List of ruleset and banlist changes in a custom format.
+		 * @type {?string[]}
+		 */
+		this.customRules = this.customRules || null;
+		/**
+		 * Table of rule names and banned effects.
+		 * @type {?RuleTable}
+		 */
+		this.ruleTable = null;
+		/**
+		 * The number of Pokemon players can bring to battle and
+		 * the number that can actually be used.
+		 * @type {{battle?: number, validate?: [number, number]} | undefined}
+		 */
+		this.teamLength = this.teamLength || undefined;
+		/**
+		 * An optional function that runs at the start of a battle.
+		 * @type {(this: Battle) => void | undefined}
+		 */
+		this.onBegin = this.onBegin || undefined;
+
+		/**
+		 * If no team is selected, this format can generate a random team
+		 * for the player.
+		 * @type {boolean}
+		 */
+		this.canUseRandomTeam = !!this.canUseRandomTeam;
+		/**
+		 * Pokemon must be obtained from Gen 6 or later.
+		 * @type {boolean}
+		 */
+		this.requirePentagon = !!this.requirePentagon;
+		/**
+		 * Pokemon must be obtained from Gen 7 or later.
+		 * @type {boolean}
+		 */
+		this.requirePlus = !!this.requirePlus;
+		/**
+		 * Maximum possible level pokemon you can bring. Note that this is
+		 * still 100 in VGC, because you can bring level 100 pokemon,
+		 * they'll just be set to level 50. Can be above 100 in special
+		 * formats.
+		 * @type {number}
+		 */
+		this.maxLevel = this.maxLevel || 100;
+		/**
+		 * Default level of a pokemon without level specified. Mainly
+		 * relevant to Custom Game where the default level is still 100
+		 * even though higher level pokemon can be brought.
+		 * @type {number}
+		 */
+		this.defaultLevel = this.defaultLevel || this.maxLevel;
+		/**
+		 * Forces all pokemon brought in to this level. Certain Game Freak
+		 * formats will change level 1 and level 100 pokemon to level 50,
+		 * which is what this does.
+		 *
+		 * You usually want maxForcedLevel instead, which will bring level
+		 * 100 pokemon down, but not level 1 pokemon up.
+		 * @type {number | undefined}
+		 */
+		this.forcedLevel = this.forcedLevel || undefined;
+		/**
+		 * Forces all pokemon above this level down to this level. This
+		 * will allow e.g. level 50 Hydreigon in Gen 5, which is not
+		 * normally legal because Hydreigon doesn't evolve until level
+		 * 64.
+		 * @type {number | undefined}
+		 */
+		this.maxForcedLevel = this.maxForcedLevel || undefined;
+
+		/** @type {boolean} */
+		this.noLog = !!this.noLog;
+	}
+}
+
+

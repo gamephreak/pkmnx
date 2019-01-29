@@ -2,6 +2,20 @@
 // The list of formats is stored in config/formats.js
 
 'use strict';
+interface FormatsData extends EventMethods {
+	name: string
+	banlist?: string[]
+	desc?: string
+	effectType?: 'Rule' | 'ValidatorRule'
+	customRules: string[] | null
+
+	forcedLevel?: number
+	maxLevel?: number
+	mod?: string
+	ruleset?: string[]
+	team?: string
+}
+
 
 /**@type {{[k: string]: FormatsData}} */
 let BattleFormats = {

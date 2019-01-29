@@ -2,8 +2,16 @@
 
 // Note: This is the list of formats
 // The rules that formats use are stored in data/rulesets.js
+/*interface FormatsData extends EventMethods {
+	name: string
+	mod?: string // TODO gen
+	ruleset?: string[]
+	banlist?: string[]
+	unbanlist?: string[]
+	maxLevel?: number
+}*/
 
-/**@type {(FormatsData | {section: string, column?: number})[]} */
+/**@type {(FormatsData[]} */
 let Formats = [
 	{
 		name: "[Gen 7] OU",
@@ -228,3 +236,5 @@ let Formats = [
 		banlist: ['UU'],
 	}
 ];
+
+module.exports = Formats;
