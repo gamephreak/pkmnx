@@ -40,30 +40,24 @@ export type EventInfo = {
 
 export interface Species extends pkmn.Species {
   readonly eggGroups: Readonly<string[]>;
-	readonly genderRatio?: {[k: string]: number}
+  readonly genderRatio?: {[k: string]: number}
   readonly evoLevel?: number;
   readonly maleOnlyHidden?: boolean;
   readonly unreleasedHidden?: boolean;
   readonly eventOnly?: boolean;
   readonly eventPokemon?: Readonly<EventInfo[]>;
   readonly learnset?: Readonly<{[k: string]: MoveSource[]}>;
-	readonly battleOnly?: boolean;
+  readonly battleOnly?: boolean;
   readonly requiredAbility?: string;
-	readonly requiredItem?: string;
-	readonly requiredItems?: string[];
-	readonly requiredMove?: string;
+  readonly requiredItem?: string;
+  readonly requiredItems?: string[];
+  readonly requiredMove?: string;
+  // TODO illegal moveset combinations!
 }
 
 export class Species extends pkmn.Species {
 
-  get nfe() {
-    return this.evos && this.evos.length;
+  static nfe(s: Species) {
+    return s.evos && s.evos.length;
   }
-
-  static validMoves(moves: {[m: string]: 1}): {[m: string]: 1} {
-    return {};   // TODO
-  }
-
-
-
 }

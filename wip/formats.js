@@ -68,18 +68,6 @@ let Formats = [
 		banlist: ['Illegal', 'Unreleased'],
 	},
 	{
-		name: "[Gen 7] CAP",
-		mod: 'gen7',
-		ruleset: ['[Gen 7] OU', 'Allow CAP'],
-		banlist: ['Tomohawk + Earth Power', 'Tomohawk + Reflect'],
-	},
-	{
-		name: "[Gen 7] CAP LC",
-		mod: 'gen7',
-		maxLevel: 5,
-		ruleset: ['[Gen 7] LC', 'Allow CAP'],
-	},
-	{
 		name: "[Gen 6] OU",
 		mod: 'gen6',
 		ruleset: ['Pokemon', 'Standard', 'Team Preview', 'Swagger Clause'],

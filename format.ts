@@ -1,13 +1,16 @@
 import * as pkmn from 'pkmn';
 
 export class Format {
+  readonly id: pkmn.ID;
+
   constructor(readonly gen: pkmn.Generation = 7, readonly tier: pkmn.Tier = 'OU') {
     this.gen = gen;
     this.tier = tier;
+    this.id =`gen${gen}${toID(tier)}`
   }
 
-  toString() {
-    return `${gen}${tier}`
+  toString(): string {
+    return this.id;
   }
 
   static fromString(s: string): Format|undefined {

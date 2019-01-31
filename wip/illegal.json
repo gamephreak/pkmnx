@@ -1,0 +1,66 @@
+{
+  "chansey": {
+    "incompatibleMoves": [
+      ["charm", "seismictoss"],
+      ["charm", "psywave"]
+    ]
+  },
+  "blissey": {
+    "incompatibleMoves": [
+      ["charm", "seismictoss"],
+      ["charm", "psywave"]
+    ]
+  },
+  "shiftry": {
+    "incompatibleMoves": [
+      ["leafblade", "suckerpunch"]
+    ]
+  },
+  // RBY
+  "kakuna": {
+    "incompatibleMoves": [
+      ["poisonsting", "harden"]
+      ["stringshot", "harden"]
+    ]
+  },
+  "beedrill": {
+    "incompatibleMoves": [
+      ["poisonsting", "harden"]
+      ["stringshot", "harden"]
+    ]
+  },
+ "nidoking": {
+    "incompatibleMoves": [
+      ["furyattack", "thrash"]
+    ]
+  },
+ "exeggutor": {
+    "incompatibleMoves": [
+      ["poisonpowder", "stomp"]
+      ["sleeppowder", "stomp"]
+      ["stunspore", "stomp"]
+    ]
+  },
+ "eevee": {
+    "incompatibleMoves": [
+      ["tackle", "growl"]
+    ]
+  },
+ "vaporeon": {
+    "incompatibleMoves": [
+      ["tackle", "growl"]
+    ]
+  },
+ "jolteon": {
+    "incompatibleMoves": [
+      ["tackle", "growl"],
+      ["focusenergy", "thundershock"]
+    ]
+  },
+ "flareon": {
+    "incompatibleMoves": [
+      ["tackle", "growl"],
+      ["focusenergy", "ember"]
+    ]
+  }
+}
