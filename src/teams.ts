@@ -12,8 +12,9 @@ export class Team extends pkmn.Team {
 }
 
 export class Teams extends pkmn.Teams {
-  static validateTeam(team: pkmn.Team, format?: Format): string[] {
-    format = format || Format.fromString(team.format || '');
+  static validateTeam(team: pkmn.Team, f?: Format): string[] {
+    const format: Format =
+        f ? f : Format.fromString(team.format || '') || new Format();
     const rules = Rules.get(format);
     if (!rules) {
       return [`${format} is not a valid format.`];
@@ -46,8 +47,8 @@ export class Teams extends pkmn.Teams {
           if (set.name === species.baseSpecies) continue;
           if (nameTable[set.name]) {
             problems.push(
-                `Your Pokémon must have different nicknames (you have more than one ${
-                    set.name}).`);
+                `Your Pokémon must have different ` +
+                `nicknames (you have more than one ${set.name}).`);
           }
           nameTable[set.name] = true;
         }
@@ -57,8 +58,8 @@ export class Teams extends pkmn.Teams {
       if (rules.clauses.has('Species')) {
         if (speciesTable[species.num]) {
           problems.push(
-              `You are limited to one of each Pokémon by Species Clause (you have more than one ${
-                  species.baseSpecies}).`);
+              `You are limited to one of each Pokémon by Species ` +
+              `Clause (you have more than one ${species.baseSpecies}).`);
         }
         speciesTable[species.num] = true;
       }
@@ -79,7 +80,7 @@ export class Teams extends pkmn.Teams {
 
       problems.concat(Sets.validate(set, format));
 
-      abilityTable[toID(set.ability)] = true;
+      abilityTable[pkmn.toID(set.ability)] = true;
       if (set.moves.find(m => pkmn.toID(m) === 'batonpass')) bp++;
     }
 

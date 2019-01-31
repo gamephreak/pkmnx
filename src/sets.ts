@@ -4,6 +4,10 @@ import {Format} from './format';
 import {Rules} from './rules';
 import {Species} from './species';
 
+function IDSet(...ids: string[]): Set<pkmn.ID> {
+  return new Set(ids as pkmn.ID[]);
+}
+
 export class Sets extends pkmn.Sets {
   static validate(set: pkmn.PokemonSet, format: Format): string[] {
     const rules = Rules.get(format);
@@ -29,7 +33,7 @@ export class Sets extends pkmn.Sets {
     }
 
     // Level
-    if (Rules.isLittleCup(rule)) {
+    if (Rules.isLittleCup(rules)) {
       if (species.prevo) {
         problems.push(`${pokemon} isn't the first in its evolution family.`);
       } else if (!Species.nfe(species)) {
@@ -49,13 +53,14 @@ export class Sets extends pkmn.Sets {
       if (set.moves.length > 4) {
         problems.push(`${pokemon} has more than four moves.`);
       }
-      const moveTable: {[k: string]: Move} = {};
+      const moveTable: {[k: string]: pkmn.Move} = {};
       // BUG: Gen 2 Marowak w/ Swords Dance?
       for (const m of set.moves) {
         const move = pkmn.Moves.get(m, format.gen);
         if (!move) {
           problems.push(
               `${m} is not a valid move for generation ${format.gen}`);
+          continue;
         }
         if (moveTable[move.id]) {
           problems.push(`${pokemon} may not have duplicate moves (${
@@ -84,16 +89,18 @@ export class Sets extends pkmn.Sets {
       // Gen 2 Sleep Trapping
       if (format.gen === 2) {
         if (checkSleepTrap(moveTable)) {
-          problems.push(`${
-              pokemon} has both a sleeping and a trapping move, a combination which is banned in generation ${
-              format.gen}.`);
+          problems.push(
+              `${pokemon} has both a sleeping and a trapping move, a ` +
+              `combination which is banned in generation ${format.gen}.`);
         }
       }
 
       // Baton Pass Clause (partial)
       if (rules.clauses.has('Baton Pass') && moveTable['batonpass']) {
         if (checkBatonPass(set, format, moveTable)) {
-          problems.push(`${pokemon} can Baton Pass both Speed and a different stat, which is banned by Baton Pass Clause.`;
+          problems.push(
+              `${pokemon} can Baton Pass both Speed and a different stat, ` +
+              `which is banned by Baton Pass Clause.`);
         }
       }
     } else {
@@ -106,26 +113,28 @@ export class Sets extends pkmn.Sets {
         problems.push(`${pokemon} is the wrong gender for its species (${
             set.gender} vs. ${species.gender}).`);
       }
-      if (gen === 2) {
+      if (format.gen === 2) {
         const atkDV = pkmn.Stats.itod(set.ivs.atk);
         // Gen 2 gender is calculated from the Atk DV.
         // High Atk DV <-> M. The meaning of "high" depends on the gender ratio.
-        const genderThreshold = species.genderRatio.F * 16;
+        let genderThreshold = species.genderRatio.F * 16;
         if (genderThreshold === 4) genderThreshold = 5;
         if (genderThreshold === 8) genderThreshold = 7;
 
         const expectedGender = (atkDV >= genderThreshold ? 'M' : 'F');
         if (set.gender !== expectedGender) {
-          problems.push(`${pokemon} is ${set.gender}, but it has an Atk DV of ${
-              atkDV}, which makes its gender ${expectedGender}.`);
+          problems.push(
+              `${pokemon} is ${set.gender}, but it has an Atk DV ` +
+              `of ${atkDV}, which makes its gender ${expectedGender}.`);
         }
       }
     }
 
     // EVs
     if (format.gen < 3 && set.evs.spa !== set.evs.spd) {
-      problems.push(`Before generation 3, SpA and SpD EVs must match (${
-          pokemon} has ${set.evs.spa} SpA and ${set.evs.spd} SpD EVs).`);
+      problems.push(
+          `Before generation 3, SpA and SpD EVs must match ` +
+          `(${pokemon} has ${set.evs.spa} SpA and ${set.evs.spd} SpD EVs).`);
     }
     // TODO: Max EVs and Total EVs check
 
@@ -133,38 +142,40 @@ export class Sets extends pkmn.Sets {
     if (format.gen >= 6) {
       if (isLegendary(species, set.shiny)) {
         let perfect = 0;
-        let stat: Stat;
+        let stat: pkmn.Stat;
         for (stat in set.ivs) {
           if (set.ivs[stat] >= 31) perfect++;
         }
         if (perfect < 3) {
-          problems.push(`${
-              pokemon} must have at least three perfect IVs because it's a legendary in generation ${
-              format.gen}.`);
+          problems.push(
+              `${pokemon} must have at least three perfect IVs ` +
+              `because it's a legendary in generation ${format.gen}.`);
         }
       }
 
     } else if (format.gen < 3) {
       if (set.ivs.spa !== set.ivs.spd) {
-        problems.push(`Before generation 3, SpA and SpD IVs must match (${
-            pokemon} has ${set.ivs.spa} SpA and ${set.ivs.spd} SpD IVs).`);
+        problems.push(
+            `Before generation 3, SpA and SpD IVs must match ` +
+            `(${pokemon} has ${set.ivs.spa} SpA and ${set.ivs.spd} SpD IVs).`);
       }
       if (format.gen === 2) {
-        const dvs = pkmn.Stats.istods(set.ivs);
+        const dvs = pkmn.Stats.istods(set.ivs) as pkmn.StatsTable;
 
         const expectedHPDV = pkmn.Stats.getHPDV(set.ivs);
         if (dvs.hp !== expectedHPDV) {
-          problems.push(`${pokemon} has an HP DV of ${
-              dvs.hp}, but its Atk, Def, Spe and Spc DVs give it an HP DV of ${
-              expectedHPDV}.`);
+          problems.push(
+              `${pokemon} has an HP DV of ${dvs.hp}, but its ` +
+              `Atk, Def, Spe and Spc DVs give it an HP DV of ${expectedHPDV}.`);
         }
 
         const expectedShiny =
             !!(dvs.def === 10 && dvs.spe === 10 && dvs.spa === 10 &&
                dvs.atk % 4 >= 2);
         if ((expectedShiny && !set.shiny) || (!expectedShiny && set.shiny)) {
-          problems.push(`${name} is${
-              set.shiny ? ' not ' : ' '}shiny, which does not match its DVs.`);
+          problems.push(
+              `${pokemon} is${set.shiny ? ' not ' : ' '}shiny, ` +
+              `which does not match its DVs.`);
         }
       }
     }
@@ -174,13 +185,15 @@ export class Sets extends pkmn.Sets {
       const nature = pkmn.Natures.get(set.nature);
       if (nature) {
         if (format.gen < 3) {
-          problems.push(`Natures do not exist in generation ${format.gen} (${
-              pokemon} has ${nature})`);
+          problems.push(
+              `Natures do not exist in generation ${format.gen} ` +
+              `(${pokemon} has ${nature})`);
         }
       } else {
         if (format.gen >= 3) {
-          problems.push(`${set.nature} is not a valid nature in generation ${
-              format.gen}`);
+          problems.push(
+              `${set.nature} is not a valid nature in ` +
+              `generation ${format.gen}`);
         }
       }
     } else {
@@ -194,25 +207,26 @@ export class Sets extends pkmn.Sets {
     if (format.gen >= 3) {
       const ability = pkmn.Items.get(set.ability, format.gen);
       if (!ability) {
-        problems.push(`${set.ability} is not a valid ability for generation ${
-            format.gen}`);
-      }
-
-      // Evasion Abilities Clause
-      if (rules.clauses.has('Evasion Abilities') &&
-          (ability.name === 'Sand Veil' || ability.name === 'Snow Cloak')) {
-        problems.push(`${ability.name} is banned by Evasion Abilities Clause.`);
-        continue;
-      }
-      // Moody Clause
-      if (rules.clauses.has('Moody') && ability.name === 'Moody') {
-        problems.push(`${ability.name} is banned by Moody Clause.`);
-        continue;
+        problems.push(
+            `${set.ability} is not a valid ability for ` +
+            `generation ${format.gen}`);
+      } else {
+        // Evasion Abilities Clause
+        if (rules.clauses.has('Evasion Abilities') &&
+            (ability.name === 'Sand Veil' || ability.name === 'Snow Cloak')) {
+          problems.push(
+              `${ability.name} is banned by Evasion Abilities Clause.`);
+        }
+        // Moody Clause
+        if (rules.clauses.has('Moody') && ability.name === 'Moody') {
+          problems.push(`${ability.name} is banned by Moody Clause.`);
+        }
       }
     } else {
       if (set.ability) {
-        problems.push(`Abilities do not exist in generation ${format.gen} (${
-            pokemon} has ability ${set.ability})`);
+        problems.push(
+            `Abilities do not exist in generation ${format.gen} ` +
+            `(${pokemon} has ability ${set.ability})`);
       }
     }
 
@@ -230,8 +244,9 @@ export class Sets extends pkmn.Sets {
       }
     } else {
       if (set.item) {
-        problems.push(`Held items do not exist in generation ${format.gen} (${
-            pokemon} has item ${set.item})`);
+        problems.push(
+            `Held items do not exist in generation ` +
+            `${format.gen} (${pokemon} has item ${set.item})`);
       }
     }
 
@@ -246,25 +261,23 @@ function isLegendary(s: Species, shiny?: boolean) {
 }
 
 function checkBatonPass(
-    set: pkmn.PokemonSet, format: Format, moves: {[k: string]: Move}): boolean {
-  const SPEED_BOOST_ABILITIES: Set<ID> = new Set(
-      ['motordrive', 'rattled', 'speedboost', 'steadfast', 'weakarmor']);
-  const SPEED_BOOST_ITEMS: Set<ID> =
-      new Set(['blazikenite', 'eeviumz', 'kommoniumz', 'salacberry']);
-  const NON_SPEED_BOOST_ABILITIES: Set<ID> = new Set([
-    'angerpoint', 'competitive', 'defiant', 'download', 'justified',
-    'lightningrod', 'moxie', 'sapsipper', 'stormdrain'
-  ]);
-  const NON_SPEED_BOOST_ITEMS: Set<ID> = new Set([
-    'absorbbulb', 'apicotberry', 'cellbattery', 'eeviumz', 'ganlonberry',
-    'keeberry', 'kommoniumz', 'liechiberry', 'luminousmoss', 'marangaberry',
-    'petayaberry', 'snowball', 'starfberry', 'weaknesspolicy'
-  ]);
-  const NON_SPEED_BOOST_MOVES: Set<ID> = new Set([
-    'acupressure', 'bellydrum', 'chargebeam', 'curse', 'diamondstorm',
-    'fellstinger', 'fierydance', 'flowershield', 'poweruppunch', 'rage',
-    'rototiller', 'skullbash', 'stockpile'
-  ]);
+    set: pkmn.PokemonSet, format: Format,
+    moves: {[k: string]: pkmn.Move}): boolean {
+  const SPEED_BOOST_ABILITIES =
+      IDSet('motordrive', 'rattled', 'speedboost', 'steadfast', 'weakarmor');
+  const SPEED_BOOST_ITEMS =
+      IDSet('blazikenite', 'eeviumz', 'kommoniumz', 'salacberry');
+  const NON_SPEED_BOOST_ABILITIES = IDSet(
+      'angerpoint', 'competitive', 'defiant', 'download', 'justified',
+      'lightningrod', 'moxie', 'sapsipper', 'stormdrain');
+  const NON_SPEED_BOOST_ITEMS = IDSet(
+      'absorbbulb', 'apicotberry', 'cellbattery', 'eeviumz', 'ganlonberry',
+      'keeberry', 'kommoniumz', 'liechiberry', 'luminousmoss', 'marangaberry',
+      'petayaberry', 'snowball', 'starfberry', 'weaknesspolicy');
+  const NON_SPEED_BOOST_MOVES = IDSet(
+      'acupressure', 'bellydrum', 'chargebeam', 'curse', 'diamondstorm',
+      'fellstinger', 'fierydance', 'flowershield', 'poweruppunch', 'rage',
+      'rototiller', 'skullbash', 'stockpile');
 
   const item = pkmn.Items.get(set.item, format.gen);
   const ability = pkmn.toID(set.ability);
@@ -290,15 +303,16 @@ function checkBatonPass(
     }
 
     if (item && item.zMove && move.type === item.zMoveType) {
-      if (move.zMoveBoost && move.zMoveBoost.spe && move.zMoveBoost.spe > 0) {
+      if (move.zMoveBoosts && move.zMoveBoosts.spe &&
+          move.zMoveBoosts.spe > 0) {
         if (!speedBoosted) speedBoosted = move.name;
       }
 
-      if (move.zMoveBoost &&
-          ((move.zMoveBoost.atk && move.zMoveBoost.atk > 0) ||
-           (move.zMoveBoost.def && move.zMoveBoost.def > 0) ||
-           (move.zMoveBoost.spa && move.zMoveBoost.spa > 0) ||
-           (move.zMoveBoost.spd && move.zMoveBoost.spd > 0))) {
+      if (move.zMoveBoosts &&
+          ((move.zMoveBoosts.atk && move.zMoveBoosts.atk > 0) ||
+           (move.zMoveBoosts.def && move.zMoveBoosts.def > 0) ||
+           (move.zMoveBoosts.spa && move.zMoveBoosts.spa > 0) ||
+           (move.zMoveBoosts.spd && move.zMoveBoosts.spd > 0))) {
         if (!nonSpeedBoosted || move.name === speedBoosted) {
           nonSpeedBoosted = move.name;
         }
@@ -306,14 +320,14 @@ function checkBatonPass(
     }
   }
 
-  if (SPEED_BOOST_ABILITIES.includes(ability) ||
+  if (SPEED_BOOST_ABILITIES.has(ability) ||
       (item && SPEED_BOOST_ITEMS.has(item.id))) {
     speedBoosted = true;
   }
   if (!speedBoosted) return false;
 
-  if (NON_SPEED_BOOST_ABILITIES.includes(ability) ||
-      (item && NON_SPEED_BOOST_ITEMS.includes(item.id))) {
+  if (NON_SPEED_BOOST_ABILITIES.has(ability) ||
+      (item && NON_SPEED_BOOST_ITEMS.has(item.id))) {
     nonSpeedBoosted = true;
   }
   if (!nonSpeedBoosted) return false;
@@ -324,17 +338,18 @@ function checkBatonPass(
       typeof nonSpeedBoosted === 'string');
 }
 
-function checkSleepTrap(moves: {[k: string]: Move}): boolean {
-  const SLEEP_MOVES: Set<ID> =
-      new Set(['hypnosis', 'lovelykiss', 'sing', 'sleeppowder', 'spore']);
-  const TRAP_MOVES: Set<ID> = new Set(['meanlook', 'spiderweb']);
+function checkSleepTrap(moves: {[k: string]: pkmn.Move}): boolean {
+  const SLEEP_MOVES =
+      IDSet('hypnosis', 'lovelykiss', 'sing', 'sleeppowder', 'spore');
+  const TRAP_MOVES = IDSet('meanlook', 'spiderweb');
+
 
   let sleep = false;
   let trap = false;
   for (const m in moves) {
-    if (SLEEP_MOVES.has(m)) {
+    if (SLEEP_MOVES.has(moves[m].id)) {
       sleep = true;
-    } else if (TRAP_MOVES.has(m)) {
+    } else if (TRAP_MOVES.has(moves[m].id)) {
       trap = true;
     }
   }

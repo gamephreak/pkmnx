@@ -55,7 +55,27 @@ export interface Species extends pkmn.Species {
   // TODO illegal moveset combinations!
 }
 
-export class Species extends pkmn.Species {
+export class Species {
+  // static forGen(gen: Generation): DataTable<Species> {
+  //// TODO
+  //}
+
+  // @cache
+  static getName(
+      s: pkmn.ID|string,
+      /* istanbul ignore next: @cache */ gen?: pkmn.Generation): string
+      |undefined {
+    return undefined;  // TODO
+  }
+
+  //@cache
+  static get(
+      s: pkmn.ID|string,
+      /* istanbul ignore next: @cache */ gen?: pkmn.Generation): Species
+      |undefined {
+    return undefined;  // TODO
+  }
+
   static nfe(s: Species) {
     return s.evos && s.evos.length;
   }
