@@ -299,8 +299,9 @@ function checkBatonPass(
            (move.zMoveBoost.def && move.zMoveBoost.def > 0) ||
            (move.zMoveBoost.spa && move.zMoveBoost.spa > 0) ||
            (move.zMoveBoost.spd && move.zMoveBoost.spd > 0))) {
-        if (!nonSpeedBoosted || move.name === speedBoosted)
+        if (!nonSpeedBoosted || move.name === speedBoosted) {
           nonSpeedBoosted = move.name;
+        }
       }
     }
   }

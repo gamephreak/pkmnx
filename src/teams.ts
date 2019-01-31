@@ -20,8 +20,9 @@ export class Teams extends pkmn.Teams {
     }
 
     const problems = [];
-    if (team.team.length > 6)
+    if (team.team.length > 6) {
       problems.push('Your team has more than six Pokémon.');
+    }
 
     let kyurems = 0;
     let ndm = 0;
