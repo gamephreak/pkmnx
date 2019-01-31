@@ -1,6 +1,7 @@
 export {Abilities, Ability} from 'pkmn';
 export {Aliases} from 'pkmn';
-export {extend} from 'pkmn';
+export {Data, DataTable} from 'pkmn';
+export {Format} from 'pkmn';
 export {Generation, Generations} from 'pkmn';
 export {ID, toID} from 'pkmn';
 export {Item, Items} from 'pkmn';
@@ -12,7 +13,6 @@ export {Boost, BoostsTable, Stat, Stats, StatsTable} from 'pkmn';
 export {Status, Statuses} from 'pkmn';
 export {Tier, Tiers} from 'pkmn';
 export {Type, TypeChart, Types} from 'pkmn';
-export {Format} from './format';
 export {Sets} from './sets';
 export {EventInfo, Species} from './species';
 export {Team, Teams} from './teams';

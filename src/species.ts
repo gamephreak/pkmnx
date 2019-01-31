@@ -47,7 +47,7 @@ export interface Species extends pkmn.Species {
   readonly eventOnly?: boolean;
   readonly eventPokemon?: Readonly<EventInfo[]>;
   readonly learnset?: Readonly<{[k: string]: MoveSource[]}>;
-  readonly incompatibleMoves?: Readonly<Readonly<ID[]>[]>;
+  readonly incompatibleMoves?: Readonly<Array<Readonly<pkmn.ID[]>>>;
   readonly battleOnly?: boolean;
   readonly requiredAbility?: string;
   readonly requiredItems?: string[];

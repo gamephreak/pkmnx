@@ -1,6 +1,5 @@
 import * as pkmn from 'pkmn';
 
-import {Format} from './format';
 import {Rules} from './rules';
 import {Species} from './species';
 
@@ -9,7 +8,7 @@ function IDSet(...ids: string[]): Set<pkmn.ID> {
 }
 
 export class Sets extends pkmn.Sets {
-  static validate(set: pkmn.PokemonSet, format: Format): string[] {
+  static validate(set: pkmn.PokemonSet, format: pkmn.Format): string[] {
     const rules = Rules.get(format);
     if (!rules) {
       return [`${format} is not a valid format.`];
@@ -117,7 +116,7 @@ export class Sets extends pkmn.Sets {
         const atkDV = pkmn.Stats.itod(set.ivs.atk);
         // Gen 2 gender is calculated from the Atk DV.
         // High Atk DV <-> M. The meaning of "high" depends on the gender ratio.
-        let genderThreshold = species.genderRatio.F * 16;
+        let genderThreshold = species.genderRatio!.F * 16;
         if (genderThreshold === 4) genderThreshold = 5;
         if (genderThreshold === 8) genderThreshold = 7;
 
@@ -255,13 +254,14 @@ export class Sets extends pkmn.Sets {
 }
 
 function isLegendary(s: Species, shiny?: boolean) {
-  return (s.eggGroups[0] === 'Undiscovered' || s.name === 'Manaphy') &&
+  // We know s.eggGroups is defined because gen >= 6.
+  return (s.eggGroups![0] === 'Undiscovered' || s.name === 'Manaphy') &&
       !s.prevo && !Species.nfe(s) && s.name !== 'Unown' &&
       s.baseSpecies !== 'Pikachu' && (s.baseSpecies !== 'Diancie' || !shiny);
 }
 
 function checkBatonPass(
-    set: pkmn.PokemonSet, format: Format,
+    set: pkmn.PokemonSet, format: pkmn.Format,
     moves: {[k: string]: pkmn.Move}): boolean {
   const SPEED_BOOST_ABILITIES =
       IDSet('motordrive', 'rattled', 'speedboost', 'steadfast', 'weakarmor');

@@ -1,20 +1,19 @@
 import * as pkmn from 'pkmn';
 
-import {Format} from './format';
 import {Rules} from './rules';
 import {Sets} from './sets';
 import {Species} from './species';
 
 export class Team extends pkmn.Team {
-  validate(team: pkmn.Team, format?: Format): string[] {
+  validate(team: pkmn.Team, format?: pkmn.Format): string[] {
     return Teams.validateTeam(this, format);
   }
 }
 
 export class Teams extends pkmn.Teams {
-  static validateTeam(team: pkmn.Team, f?: Format): string[] {
-    const format: Format =
-        f ? f : Format.fromString(team.format || '') || new Format();
+  static validateTeam(team: pkmn.Team, f?: pkmn.Format): string[] {
+    const format: pkmn.Format = f || team.format || new pkmn.Format();
+
     const rules = Rules.get(format);
     if (!rules) {
       return [`${format} is not a valid format.`];
