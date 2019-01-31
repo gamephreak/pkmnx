@@ -1,6 +1,7 @@
-// TODO: COMPLEX TEAM BANS REQUIRE US TO HAVE ENTIRES TEAMS SET BEFORE RESTRICTING!
-  //restrictions(s: ObservedPokemonSet, Format: format);
-  //possibilities(s: ObservedPokemonSet, Format: format);
+// TODO: COMPLEX TEAM BANS REQUIRE US TO HAVE ENTIRES TEAMS SET BEFORE
+// RESTRICTING!
+// restrictions(s: ObservedPokemonSet, Format: format);
+// possibilities(s: ObservedPokemonSet, Format: format);
 
 export type ObservedPokemonSet = {
   //readonly name: string; not important

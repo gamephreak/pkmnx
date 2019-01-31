@@ -12,8 +12,7 @@ export {Boost, BoostsTable, Stat, Stats, StatsTable} from 'pkmn';
 export {Status, Statuses} from 'pkmn';
 export {Tier, Tiers} from 'pkmn';
 export {Type, TypeChart, Types} from 'pkmn';
-
-export {EventInfo, Species} from './species';
-export {Sets} from './sets';
 export {Format} from './format';
+export {Sets} from './sets';
+export {EventInfo, Species} from './species';
 export {Team, Teams} from './teams';

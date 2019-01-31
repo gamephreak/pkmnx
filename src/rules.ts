@@ -2,12 +2,13 @@ import * as pkmn from 'pkmn';
 import {Species} from './species';
 
 // NOTE: All mods are enforced by the engine during battle.
-export type Mod = 'Sleep Clause' | 'HP Percentage' | 'Cancel' | 'Switch Priority' | 'Freeze';
+export type Mod =
+    'Sleep Clause'|'HP Percentage'|'Cancel'|'Switch Priority'|'Freeze';
 
 // NOTE: Endless Battle/Mega Rayquaza are enforced by the engine during battle.
-export type Clause = 'Species' | 'Nickname' | 'OHKO' | 'Evasion Abilities' |
-  'Evasion Moves' | 'Endless Battle' | 'Moody' |
-  'Swagger' | 'Baton Pass' | 'Mega Rayquaza';
+export type Clause =
+    'Species'|'Nickname'|'OHKO'|'Evasion Abilities'|'Evasion Moves'|
+    'Endless Battle'|'Moody'|'Swagger'|'Baton Pass'|'Mega Rayquaza';
 
 export interface Bans {
   readonly species?: Readonly<Set<pkmn.ID>>;
@@ -24,25 +25,38 @@ export interface Rules {
   readonly complexBans?: Bans[];
 }
 
-const INGRAIN_SMEARGLE: ComplexBan =
-  { species: new Set(['smeargle']), moves: new Set(['ingrain']) };
+const INGRAIN_SMEARGLE: ComplexBan = {
+  species: new Set(['smeargle']),
+  moves: new Set(['ingrain'])
+};
 
-const HYPNOSIS_MEGA_GENGAR: ComplexBan =
-  { species: new Set(['gengarmega']), moves: new Set(['hypnosis']) };
+const HYPNOSIS_MEGA_GENGAR: ComplexBan = {
+  species: new Set(['gengarmega']),
+  moves: new Set(['hypnosis'])
+};
 
-const SMASH_PASS: ComplexBan =
-  { moves: new Set(['shellsmash', 'batonpass']) };
+const SMASH_PASS: ComplexBan = {
+  moves: new Set(['shellsmash', 'batonpass'])
+};
 
-const PRANKSTER_ASSIST: ComplexBan =
-  { ability: new Set(['prankster']),  moves: new Set(['assist']) };
+const PRANKSTER_ASSIST: ComplexBan = {
+  ability: new Set(['prankster']),
+  moves: new Set(['assist'])
+};
 
-const LEFTOVERS_WOBBUFFET: ComplexBan =
-  { species: new Set(['wobbuffet']), item: new Set(['leftovers']) };
+const LEFTOVERS_WOBBUFFET: ComplexBan = {
+  species: new Set(['wobbuffet']),
+  item: new Set(['leftovers'])
+};
 
-const STANDARD_MODS: Readonly<Set<Mod>>: new Set(['Sleep Clause', 'HP Percentage', 'Cancel']);
-const STANDARD_CLAUSES: Readonly<Set<Clause>> = new Set(['Species', 'Nickname', 'OHKO', 'Moody', 'Evasion Moves', 'Endless Battle']);
+const STANDARD_MODS: Readonly<Set<Mod>> =
+    new Set(['Sleep Clause', 'HP Percentage', 'Cancel']);
 
-const RULES: {[format: string]: Rules = {
+const STANDARD_CLAUSES: Readonly<Set<Clause>> = new Set([
+  'Species', 'Nickname', 'OHKO', 'Moody', 'Evasion Moves', 'Endless Battle'
+]);
+
+const RULES: {[format: string]: Rules} = {
   'gen7ag': {
     format: 'gen7ag',
     mods: new Set(['HP Percentage', 'Cancel']),
@@ -52,7 +66,8 @@ const RULES: {[format: string]: Rules = {
     format: 'gen7uber',
     mods: STANDARD_MODS,
     clauses: new Set([...STANDARD_CLAUSES, 'Mega Rayquaza']),
-    bans: { moves: new Set(['batonpass']) }
+    bans: {moves: new Set(['batonpass'])},
+    complexBans: new Set([HYPNOSIS_MEGA_GENGAR])
   },
   'gen7ou': {
     format: 'gen7ou',
@@ -116,7 +131,8 @@ const RULES: {[format: string]: Rules = {
   'gen5ou': {
     format: 'gen5ou',
     mods: STANDARD_MODS,
-    clauses: new Set([...STANDARD_CLAUSES, 'Swagger', 'Baton Pass', 'Evasion Abilities']),
+    clauses: new Set(
+        [...STANDARD_CLAUSES, 'Swagger', 'Baton Pass', 'Evasion Abilities']),
     bans: {
       moves: new Set(['batonpass']),
       abilities: new Set(['arenatrap', 'sandrush']),
@@ -137,7 +153,7 @@ const RULES: {[format: string]: Rules = {
     complexBans: new Set(INGRAIN_SMEARGLE),
   },
   // TODO
-}
+};
 
 export class Rules {
   static get(f: Format): Rules|undefined {
@@ -146,10 +162,11 @@ export class Rules {
 
   static isLittleCup(r: Rules) {
     const tier = r.format.tier;
-    return tier === 'LC' || tier == 'LC Uber';
+    return tier === 'LC' || tier === 'LC Uber';
   }
 
-  static isBanned(r: Rules, k:'Move'|'Ability'|'Item'|'Species', id: pkmn.ID): boolean {
+  static isBanned(r: Rules, k: 'Move'|'Ability'|'Item'|'Species', id: pkmn.ID):
+      boolean {
     switch (k) {
       case 'Move':
         return (r.bans && r.bans.moves) ? r.bans.moves.has(id) : false;
@@ -161,6 +178,7 @@ export class Rules {
         if (r.bans && r.bans.species && r.bans.species.has(id)) return true;
         const species = Species.get(id);
         return !!species || pkmn.Tiers.isAllowed(species, r.format.tier);
+      default:  // exhaustive
     }
     return false;
   }
