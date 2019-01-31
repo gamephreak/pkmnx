@@ -24,7 +24,7 @@ import * as pkmn from 'pkmn';
 type MoveSource = string;
 
 export type EventInfo = {
-  readonly generation: pkmn.Generation;
+  readonly gen: pkmn.Generation;
   readonly level?: number;
   readonly shiny?: true | 1;
   readonly gender?: pkmn.Gender;
@@ -39,34 +39,25 @@ export type EventInfo = {
 };
 
 export interface Species extends pkmn.Species {
-  readonly eggGroups: Readonly<string[]>;
-  readonly genderRatio?: {[k: string]: number};
+  readonly eggGroups?: Readonly<string[]>;
+  readonly genderRatio?: {M: number, F: number};
   readonly evoLevel?: number;
   readonly maleOnlyHidden?: boolean;
   readonly unreleasedHidden?: boolean;
   readonly eventOnly?: boolean;
   readonly eventPokemon?: Readonly<EventInfo[]>;
   readonly learnset?: Readonly<{[k: string]: MoveSource[]}>;
+  readonly incompatibleMoves?: Readonly<Readonly<ID[]>[]>;
   readonly battleOnly?: boolean;
   readonly requiredAbility?: string;
-  readonly requiredItem?: string;
   readonly requiredItems?: string[];
   readonly requiredMove?: string;
-  // TODO illegal moveset combinations!
 }
 
 export class Species {
   // static forGen(gen: Generation): DataTable<Species> {
   //// TODO
   //}
-
-  // @cache
-  static getName(
-      s: pkmn.ID|string,
-      /* istanbul ignore next: @cache */ gen?: pkmn.Generation): string
-      |undefined {
-    return undefined;  // TODO
-  }
 
   //@cache
   static get(
