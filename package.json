@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@types/jest": "^23.3.12",
+    "coveralls": "^3.0.2",
     "gts": "^0.9.0",
     "jest": "^23.6.0",
     "source-map-support": "^0.5.9",
@@ -33,6 +34,7 @@
     "compile": "tsc -p .",
     "fix": "gts fix",
     "test": "jest",
+    "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "prepare": "npm run compile",
     "pretest": "npm run compile",
     "posttest": "npm run check"

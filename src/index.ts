@@ -15,4 +15,5 @@ export {Type, TypeChart, Types} from 'pkmn';
 
 export {EventInfo, Species} from './species';
 export {Sets} from './sets';
+export {Format} from './format';
 export {Team, Teams} from './teams';

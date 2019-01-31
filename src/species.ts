@@ -40,7 +40,7 @@ export type EventInfo = {
 
 export interface Species extends pkmn.Species {
   readonly eggGroups: Readonly<string[]>;
-  readonly genderRatio?: {[k: string]: number}
+  readonly genderRatio?: {[k: string]: number};
   readonly evoLevel?: number;
   readonly maleOnlyHidden?: boolean;
   readonly unreleasedHidden?: boolean;
@@ -56,7 +56,6 @@ export interface Species extends pkmn.Species {
 }
 
 export class Species extends pkmn.Species {
-
   static nfe(s: Species) {
     return s.evos && s.evos.length;
   }

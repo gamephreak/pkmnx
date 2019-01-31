@@ -1,9 +1,11 @@
 {
   "extends": "./node_modules/gts/tsconfig-google.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "./src",
     "outDir": "build",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+     "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
   },
   "include": [
     "*.ts",
@@ -12,6 +14,7 @@
     "test/**/*.ts"
   ],
   "exclude": [
-    "build"
+    "build",
+    "wip"
   ]
 }

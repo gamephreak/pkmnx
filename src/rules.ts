@@ -22,7 +22,6 @@ export interface Rules {
   readonly clauses: Reaodnly<Set<Clause>>;
   readonly bans?: Bans;
   readonly complexBans?: Bans[];
-  // TODO complexTeamBans?: Set<Ban>; // Drought ++ Chlorphyll, Drizzle ++ Swift Swim
 }
 
 const INGRAIN_SMEARGLE: ComplexBan =
@@ -120,8 +119,8 @@ const RULES: {[format: string]: Rules = {
     clauses: new Set([...STANDARD_CLAUSES, 'Swagger', 'Baton Pass', 'Evasion Abilities']),
     bans: {
       moves: new Set(['batonpass']),
-      abilities: new Set(['arenatrap', 'sandrush'])
-      items: new Set(['souldew']),
+      abilities: new Set(['arenatrap', 'sandrush']),
+      items: new Set(['souldew'])
     }
   },
   // TODO
@@ -138,7 +137,7 @@ const RULES: {[format: string]: Rules = {
     complexBans: new Set(INGRAIN_SMEARGLE),
   },
   // TODO
-};
+}
 
 export class Rules {
   static get(f: Format): Rules|undefined {
@@ -173,7 +172,7 @@ export class Rules {
       if ((!ban.species || ban.species.has(pkmn.toID(s.species))) &&
           (!ban.abilities || ban.abilities.has(pkmn.toID(s.ability))) &&
           (!ban.items || ban.items.has(pkmn.toID(s.item))) &&
-          (!ban.moves || s.moves.filter(m => !ban.moves.has(toID(m))).length)) {
+          (!ban.moves || !!s.moves.find(m => ban.moves.has(toID(m))))) {
         return true;
       }
     }
