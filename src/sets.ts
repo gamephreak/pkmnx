@@ -248,10 +248,10 @@ export class Sets extends pkmn.Sets {
       }
     }
 
-    const lsetData: PokemonSources = {
+    let isHidden = false; // TODO is this necessary?
+    const learnsetData: PokemonSources = {
       sources: [],
       sourcesBefore: format.gen,
-      isHidden: false
     };
 
     // Ability
@@ -281,7 +281,7 @@ export class Sets extends pkmn.Sets {
         }
 
         if (ability.name === abilities['H']) {
-          lsetData.isHidden = true;
+          isHidden = true;
 
           const speciesName = pkmn.Species.getName(set.species)!;
           if (species.unreleasedHidden) {
@@ -306,7 +306,7 @@ export class Sets extends pkmn.Sets {
               problems.push(
                   `${pokemon} must be male to have its Hidden Ability.`);
             }
-            lsetData.sources = ['5D'];
+            learnsetData.sources = ['5D'];
           }
         }
 
@@ -328,6 +328,8 @@ export class Sets extends pkmn.Sets {
             `(${pokemon} has ability ${set.ability})`);
       }
     }
+
+    // let learnsetProblems = []; // TODO
 
     // Moves
     let hpTypeMove: pkmn.Type|undefined;
@@ -376,6 +378,15 @@ export class Sets extends pkmn.Sets {
           problems.push(`${move.name} is banned by Swagger Clause.`);
           continue;
         }
+
+        /* TODO: ???
+        let lsetProblem = checkLearnset(move, species, lsetData, set);
+        if (lsetProblem) {
+          lsetProblem.moveName = move.name;
+          lsetProblems.push(lsetProblem);
+          //break;
+        }
+        */
       }
 
       // Gen 2 Sleep Trapping
@@ -433,6 +444,82 @@ export class Sets extends pkmn.Sets {
         }
       }
     }
+
+    /* TODO *********************
+    lsetData.isHidden = isHidden;
+    let lsetProblems = this.reconcileLearnset(template, lsetData, lsetProblem, name);
+    if (lsetProblems) problems.push(...lsetProblems);
+
+    if (!lsetData.sourcesBefore && lsetData.sources.length && lsetData.sources.every(source => 'SVD'.includes(source.charAt(1)))) {
+      // Every source is restricted
+      let legal = false;
+      for (const source of lsetData.sources) {
+        if (this.validateSource(set, source, template)) continue;
+        legal = true;
+        break;
+      }
+
+      if (!legal) {
+        if (lsetData.sources.length > 1) {
+          problems.push(`${name} has an event-exclusive move that it doesn't qualify for (only one of several ways to get the move will be listed):`);
+        }
+        let eventProblems = this.validateSource(set, lsetData.sources[0], template, ` because it has a move only available`);
+        // @ts-ignore validateEvent must have returned an array because it was passed a because param
+        if (eventProblems) problems.push(...eventProblems);
+      }
+    } else if (ruleTable.has('-illegal') && template.eventOnly) {
+      let eventTemplate = !template.learnset && template.baseSpecies !== template.species && template.id !== 'zygarde10' ? dex.getTemplate(template.baseSpecies) : template;
+      const eventPokemon = eventTemplate.eventPokemon;
+      if (!eventPokemon) throw new Error(`Event-only template ${template.species} has no eventPokemon table`);
+      let legal = false;
+      for (const eventData of eventPokemon) {
+        if (this.validateEvent(set, eventData, eventTemplate)) continue;
+        legal = true;
+        break;
+      }
+      if (!legal && template.id === 'celebi' && dex.gen >= 7 && !this.validateSource(set, '7V', template)) {
+        legal = true;
+      }
+      if (!legal) {
+        if (eventPokemon.length === 1) {
+          problems.push(`${template.species} is only obtainable from an event - it needs to match its event:`);
+        } else {
+          problems.push(`${template.species} is only obtainable from events - it needs to match one of its events, such as:`);
+        }
+        let eventInfo = eventPokemon[0];
+        const minPastGen = (format.requirePlus ? 7 : format.requirePentagon ? 6 : 1);
+        let eventNum = 1;
+        for (const [i, eventData] of eventPokemon.entries()) {
+          if (eventData.generation <= dex.gen && eventData.generation >= minPastGen) {
+            eventInfo = eventData;
+            eventNum = i + 1;
+            break;
+          }
+        }
+        let eventName = eventPokemon.length > 1 ? ` #${eventNum}` : ``;
+        let eventProblems = this.validateEvent(set, eventInfo, eventTemplate, ` to be`, `from its event${eventName}`);
+        // @ts-ignore validateEvent must have returned an array because it was passed a because param
+        if (eventProblems) problems.push(...eventProblems);
+      }
+    }
+    if (ruleTable.has('-illegal') && set.level < (template.evoLevel || 0)) {
+      // FIXME: Event pokemon given at a level under what it normally can be attained at gives a false positive
+      problems.push(`${name} must be at least level ${template.evoLevel} to be evolved.`);
+    }
+    if (ruleTable.has('-illegal') && template.id === 'keldeo' && set.moves.includes('secretsword') && (format.requirePlus || format.requirePentagon)) {
+      problems.push(`${name} has Secret Sword, which is only compatible with Keldeo-Ordinary obtained from Gen 5.`);
+    }
+    if (!lsetData.sources && lsetData.sourcesBefore <= 3 && dex.getAbility(set.ability).gen === 4 && !template.prevo && dex.gen <= 5) {
+      problems.push(`${name} has a gen 4 ability and isn't evolved - it can't use moves from gen 3.`);
+    }
+    if (!lsetData.sources && lsetData.sourcesBefore < 6 && lsetData.sourcesBefore >= 3 && (isHidden || dex.gen <= 5) && template.gen <= lsetData.sourcesBefore) {
+      let oldAbilities = dex.mod('gen' + lsetData.sourcesBefore).getTemplate(set.species).abilities;
+      if (ability.name !== oldAbilities['0'] && ability.name !== oldAbilities['1'] && !oldAbilities['H']) {
+        problems.push(`${name} has moves incompatible with its ability.`);
+      }
+    }
+
+    */// TODO **********************
 
     return problems;
   }
