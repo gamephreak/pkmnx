@@ -44,34 +44,37 @@ export class Rules {
     return RULES[f.id];
   }
 
-  static isLittleCup(r: Rules) {
-    const tier = r.format.tier;
+  isLittleCup() {
+    const tier = this.format.tier;
     return tier === 'LC' || tier === 'LC Uber';
   }
 
-  static isBanned(r: Rules, k: 'Move'|'Ability'|'Item'|'Species', id: pkmn.ID):
-      boolean {
+  isBanned(k: 'Move'|'Ability'|'Item'|'Species', id: pkmn.ID): boolean {
     switch (k) {
       case 'Move':
-        return (r.bans && r.bans.moves) ? r.bans.moves.has(id) : false;
+        return (this.bans && this.bans.moves) ? this.bans.moves.has(id) : false;
       case 'Ability':
-        return (r.bans && r.bans.abilities) ? r.bans.abilities.has(id) : false;
+        return (this.bans && this.bans.abilities) ?
+            this.bans.abilities.has(id) :
+            false;
       case 'Item':
-        return (r.bans && r.bans.items) ? r.bans.items.has(id) : false;
+        return (this.bans && this.bans.items) ? this.bans.items.has(id) : false;
       case 'Species':
-        if (r.bans && r.bans.species && r.bans.species.has(id)) return true;
+        if (this.bans && this.bans.species && this.bans.species.has(id)) {
+          return true;
+        }
         const species = Species.get(id);
         return species === undefined ||
-            pkmn.Tiers.isAllowed(species, r.format.tier);
+            pkmn.Tiers.isAllowed(species, this.format.tier);
       default:  // exhaustive
     }
     return false;
   }
 
-  static isComplexBanned(r: Rules, s: pkmn.PokemonSet): boolean {
-    if (!r.complexBans || !r.complexBans.length) return false;
+  isComplexBanned(s: pkmn.PokemonSet): boolean {
+    if (!this.complexBans || !this.complexBans.length) return false;
 
-    for (const ban of r.complexBans) {
+    for (const ban of this.complexBans) {
       if ((!ban.species || ban.species.has(pkmn.toID(s.species))) &&
           (!ban.abilities || ban.abilities.has(pkmn.toID(s.ability))) &&
           (!ban.items || ban.items.has(pkmn.toID(s.item))) &&
