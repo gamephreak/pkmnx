@@ -129,22 +129,19 @@ export class Sets extends pkmn.Sets {
       }
     }
 
-    // EVs
-    if (format.gen < 3 && set.evs.spa !== set.evs.spd) {
-      problems.push(
-          `Before generation 3, SpA and SpD EVs must match ` +
-          `(${pokemon} has ${set.evs.spa} SpA and ${set.evs.spd} SpD EVs).`);
-    }
-    // TODO: Max EVs and Total EVs check
-
     // IVs
+    let perfect = 0;
+    let stat: pkmn.Stat;
+    for (stat in set.ivs) {
+      const iv = set.ivs[stat];
+      if (iv < 0 || iv > 31) {
+        problems.push(`${pokemon}'s ${pkmn.Stats.display(stat)} IV must be between 0 and 31.`);
+      } else if (iv === 31) {
+        perfect++;
+      }
+    }
     if (format.gen >= 6) {
       if (isLegendary(species, set.shiny)) {
-        let perfect = 0;
-        let stat: pkmn.Stat;
-        for (stat in set.ivs) {
-          if (set.ivs[stat] >= 31) perfect++;
-        }
         if (perfect < 3) {
           problems.push(
               `${pokemon} must have at least three perfect IVs ` +
@@ -178,6 +175,22 @@ export class Sets extends pkmn.Sets {
         }
       }
     }
+
+    // EVs
+    let total = 0;
+    for (stat in set.evs) {
+      const ev = set.evs[stat];
+      if (ev < 0 || ev > 255) {
+        problems.push(`${pokemon}'s ${pkmn.Stats.display(stat)} EV must be between 0 and 255.`);
+      }
+      total += ev;
+    }
+    if (format.gen < 3 && set.evs.spa !== set.evs.spd) {
+      problems.push(
+          `Before generation 3, SpA and SpD EVs must match ` +
+          `(${pokemon} has ${set.evs.spa} SpA and ${set.evs.spd} SpD EVs).`);
+    }
+    // TODO: Max EVs and Total EVs check
 
     // Nature
     if (set.nature) {
