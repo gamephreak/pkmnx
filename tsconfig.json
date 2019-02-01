@@ -1,6 +1,7 @@
 {
   "extends": "./node_modules/gts/tsconfig-google.json",
   "compilerOptions": {
+    "lib": ["es2015", "es2016.array.include", "es2017.object"],
     "rootDir": "./src",
     "outDir": "build",
     "resolveJsonModule": true,

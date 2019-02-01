@@ -3,6 +3,47 @@ import * as pkmn from 'pkmn';
 import {Rules} from './rules';
 import {Species} from './species';
 
+/**
+ * Describes a possible way to get a pokemon. Is not exhaustive!
+ * sourcesBefore covers all sources that do not have exclusive
+ * moves (like catching wild pokemon).
+ *
+ * First character is a generation number, 1-7.
+ * Second character is a source ID, one of:
+ *
+ * - E = egg, 3rd char+ is the father in gen 2-5, empty in gen 6-7
+ *   because egg moves aren't restricted to fathers anymore
+ * - S = event, 3rd char+ is the index in .eventPokemon
+ * - D = Dream World, only 5D is valid
+ * - V = Virtual Console transfer, only 7V is valid
+ *
+ * Designed to match MoveSource where possible.
+ */
+type PokemonSource = string;
+
+/**
+ * Keeps track of how a pokemon with a given set might be obtained.
+ *
+ * `sources` is a list of possible PokemonSources, and a nonzero
+ * sourcesBefore means the Pokemon is compatible with all possible
+ * PokemonSources from that gen or earlier.
+ *
+ * `limitedEgg` tracks moves that can only be obtained from an egg with
+ * another father in gen 2-5. If there are multiple such moves,
+ * potential fathers need to be checked to see if they can actually
+ * learn the move combination in question.
+ */
+type PokemonSources = {
+  sources: PokemonSource[]; sourcesBefore: number;
+  babyOnly?: string;
+  sketchMove?: string;
+  hm?: string;
+  restrictiveMoves?: string[];
+  limitedEgg?: Array<string|'self'>;
+  isHidden?: boolean;
+  fastCheck?: true;
+};
+
 export class Sets extends pkmn.Sets {
   static validate(set: pkmn.PokemonSet, format: pkmn.Format): string[] {
     const rules = Rules.get(format);
@@ -41,84 +82,25 @@ export class Sets extends pkmn.Sets {
     }
 
     // Level
+    if (set.level !== undefined &&
+        (isNaN(set.level) || set.level > 100 || set.level > 100)) {
+      problems.push(`${set.level} is invalid for ${pokemon}`);
+    }
+    const level = set.level ? set.level : rules.isLittleCup() ? 5 : 100;
     if (rules.isLittleCup()) {
       if (species.prevo) {
         problems.push(`${pokemon} isn't the first in its evolution family.`);
       } else if (!Species.nfe(species)) {
         problems.push(`${pokemon} doesn't have an evolution family.`);
       }
-      if (set.level && set.level > 5) {
+      if (level > 5) {
         problems.push(`${pokemon} must be level 5 or under in Little Cup.`);
-      }
-    } else {
-      if (set.level && set.level > 100) {
-        problems.push(`${pokemon} is higher than level 100.`);
       }
     }
 
-    // Moves
-    if (set.moves.length) {
-      if (set.moves.length > 4) {
-        problems.push(`${pokemon} has more than four moves.`);
-      }
-      const moveTable: {[k: string]: pkmn.Move} = {};
-      // BUG: Gen 2 Marowak w/ Swords Dance?
-      for (const m of set.moves) {
-        const move = pkmn.Moves.get(m, format.gen);
-        if (!move) {
-          problems.push(
-              `${m} is not a valid move for generation ${format.gen}`);
-          continue;
-        }
-        if (rules.isBanned('Move', move.id)) {
-          problems.push(
-              `${move.name} is banned in generation ` +
-              `${format.gen} ${format.tier}.`);
-        }
-        if (moveTable[move.id]) {
-          problems.push(
-              `${pokemon} may not have duplicate moves ` +
-              `(${move} is duplicated).`);
-        }
-        moveTable[move.id] = move;
-
-        // OHKO Clause
-        if (rules.clauses.has('OHKO') && move.ohko) {
-          problems.push(`${move.name} is banned by OHKO Clause.`);
-          continue;
-        }
-        // Evasion Moves Clause
-        if (rules.clauses.has('Evasion Moves') &&
-            (move.name === 'Minimize' || move.name === 'Double Team')) {
-          problems.push(`${move.name} is banned by Evasion Moves Clause.`);
-          continue;
-        }
-        // Swagger Clause
-        if (rules.clauses.has('Swagger') && move.name === 'Swagger') {
-          problems.push(`${move.name} is banned by Swagger Clause.`);
-          continue;
-        }
-      }
-
-      // Gen 2 Sleep Trapping
-      if (format.gen === 2) {
-        if (checkSleepTrap(moveTable)) {
-          problems.push(
-              `${pokemon} has both a sleeping and a trapping move, a ` +
-              `combination which is banned in generation ${format.gen}.`);
-        }
-      }
-
-      // Baton Pass Clause (partial)
-      if (rules.clauses.has('Baton Pass') && moveTable['batonpass']) {
-        if (checkBatonPass(set, format, moveTable)) {
-          problems.push(
-              `${pokemon} can Baton Pass both Speed and a different stat, ` +
-              `which is banned by Baton Pass Clause.`);
-        }
-      }
-    } else {
-      problems.push(`${pokemon} must have at least one move.`);
+    // Happiness
+    if (set.happiness !== undefined && isNaN(set.happiness)) {
+      problems.push(`${pokemon} has an invalid happiness.`);
     }
 
     // Gender
@@ -146,26 +128,29 @@ export class Sets extends pkmn.Sets {
     }
 
     // IVs
-    let perfect = 0;
+    let perfectIVs = 0;
+    let maxedIVs = true;
     let stat: pkmn.Stat;
     for (stat in set.ivs) {
       const iv = set.ivs[stat];
       if (iv < 0 || iv > 31) {
         problems.push(`${pokemon}'s ${
             pkmn.Stats.display(stat)} IV must be between 0 and 31.`);
+        maxedIVs = false;
       } else if (iv === 31) {
-        perfect++;
+        perfectIVs++;
+      } else {
+        maxedIVs = false;
       }
     }
     if (format.gen >= 6) {
       if (isLegendary(species, set.shiny)) {
-        if (perfect < 3) {
+        if (perfectIVs < 3) {
           problems.push(
               `${pokemon} must have at least three perfect IVs ` +
               `because it's a legendary in generation ${format.gen}.`);
         }
       }
-
     } else if (format.gen < 3) {
       if (set.ivs.spa !== set.ivs.spd) {
         problems.push(
@@ -238,38 +223,6 @@ export class Sets extends pkmn.Sets {
       }
     }
 
-    // Ability
-    if (format.gen >= 3) {
-      const ability = pkmn.Items.get(set.ability, format.gen);
-      if (!ability) {
-        problems.push(
-            `${set.ability} is not a valid ability for ` +
-            `generation ${format.gen}`);
-      } else {
-        if (rules.isBanned('Ability', ability.id)) {
-          problems.push(
-              `${ability.name} is banned in generation ` +
-              `${format.gen} ${format.tier}.`);
-        }
-        // Evasion Abilities Clause
-        if (rules.clauses.has('Evasion Abilities') &&
-            (ability.name === 'Sand Veil' || ability.name === 'Snow Cloak')) {
-          problems.push(
-              `${ability.name} is banned by Evasion Abilities Clause.`);
-        }
-        // Moody Clause
-        if (rules.clauses.has('Moody') && ability.name === 'Moody') {
-          problems.push(`${ability.name} is banned by Moody Clause.`);
-        }
-      }
-    } else {
-      if (set.ability) {
-        problems.push(
-            `Abilities do not exist in generation ${format.gen} ` +
-            `(${pokemon} has ability ${set.ability})`);
-      }
-    }
-
     // Item
     if (format.gen >= 2) {
       const item = pkmn.Items.get(set.item, format.gen);
@@ -292,6 +245,192 @@ export class Sets extends pkmn.Sets {
         problems.push(
             `Held items do not exist in generation ` +
             `${format.gen} (${pokemon} has item ${set.item})`);
+      }
+    }
+
+    const lsetData: PokemonSources = {
+      sources: [],
+      sourcesBefore: format.gen,
+      isHidden: false
+    };
+
+    // Ability
+    if (format.gen >= 3) {
+      if (!set.ability) {
+        problems.push(`${pokemon} needs to have an ability.`);
+      }
+      const ability = pkmn.Items.get(set.ability, format.gen);
+      if (!ability) {
+        problems.push(
+            `${set.ability} is not a valid ability for ` +
+            `generation ${format.gen}`);
+      } else {
+        if (rules.isBanned('Ability', ability.id)) {
+          problems.push(
+              `${ability.name} is banned in generation ` +
+              `${format.gen} ${format.tier}.`);
+        }
+        const abilities = species.abilities!;
+        if (!Object.values(abilities).includes(ability.name)) {
+          problems.push(`${pokemon} can't have ${ability.name}.`);
+        }
+
+        if (ability.id === 'battlebond' && species.id === 'greninja' &&
+            set.gender && set.gender !== 'M') {
+          problems.push(`Battle Bond Greninja must be male.`);
+        }
+
+        if (ability.name === abilities['H']) {
+          lsetData.isHidden = true;
+
+          const speciesName = pkmn.Species.getName(set.species)!;
+          if (species.unreleasedHidden) {
+            problems.push(`${pokemon}'s Hidden Ability is unreleased.`);
+          } else if (
+              format.gen === 6 &&
+              (speciesName.endsWith('Orange') ||
+               speciesName.endsWith('White')) &&
+              ability.id === 'symbiosis') {
+            problems.push(
+                `${pokemon}'s Hidden Ability is unreleased for ` +
+                `the Orange and White forms.`);
+          } else if (
+              format.gen === 5 && level < 10 &&
+              (species.maleOnlyHidden || species.gender === 'N')) {
+            problems.push(`${
+                pokemon} must be at least level 10 with its Hidden Ability.`);
+          }
+
+          if (species.maleOnlyHidden) {
+            if (set.gender && set.gender !== 'M') {
+              problems.push(
+                  `${pokemon} must be male to have its Hidden Ability.`);
+            }
+            lsetData.sources = ['5D'];
+          }
+        }
+
+        // Evasion Abilities Clause
+        if (rules.clauses.has('Evasion Abilities') &&
+            (ability.name === 'Sand Veil' || ability.name === 'Snow Cloak')) {
+          problems.push(
+              `${ability.name} is banned by Evasion Abilities Clause.`);
+        }
+        // Moody Clause
+        if (rules.clauses.has('Moody') && ability.name === 'Moody') {
+          problems.push(`${ability.name} is banned by Moody Clause.`);
+        }
+      }
+    } else {
+      if (set.ability) {
+        problems.push(
+            `Abilities do not exist in generation ${format.gen} ` +
+            `(${pokemon} has ability ${set.ability})`);
+      }
+    }
+
+    // Moves
+    let hpTypeMove: pkmn.Type|undefined;
+    if (set.moves.length) {
+      if (set.moves.length > 4) {
+        problems.push(`${pokemon} has more than four moves.`);
+      }
+      const moveTable: {[k: string]: pkmn.Move} = {};
+      // BUG: Gen 2 Marowak w/ Swords Dance?
+      for (const m of set.moves) {
+        const move = pkmn.Moves.get(m, format.gen);
+        if (!move) {
+          problems.push(
+              `${m} is not a valid move for generation ${format.gen}`);
+          continue;
+        }
+        if (move.id.startsWith('hiddenpower') && move.type !== 'Normal') {
+          hpTypeMove = move.type;
+        }
+
+        if (rules.isBanned('Move', move.id)) {
+          problems.push(
+              `${move.name} is banned in generation ` +
+              `${format.gen} ${format.tier}.`);
+        }
+        if (moveTable[move.id]) {
+          problems.push(
+              `${pokemon} may not have duplicate moves ` +
+              `(${move} is duplicated).`);
+        }
+        moveTable[move.id] = move;
+
+        // OHKO Clause
+        if (rules.clauses.has('OHKO') && move.ohko) {
+          problems.push(`${move.name} is banned by OHKO Clause.`);
+          continue;
+        }
+        // Evasion Moves Clause
+        if (rules.clauses.has('Evasion Moves') &&
+            (move.name === 'Minimize' || move.name === 'Double Team')) {
+          problems.push(`${move.name} is banned by Evasion Moves Clause.`);
+          continue;
+        }
+        // Swagger Clause
+        if (rules.clauses.has('Swagger') && move.name === 'Swagger') {
+          problems.push(`${move.name} is banned by Swagger Clause.`);
+          continue;
+        }
+      }
+
+      // Gen 2 Sleep Trapping
+      if (format.gen === 2) {
+        if (checkSleepTrap(moveTable)) {
+          problems.push(
+              `${pokemon} has both a sleeping and a trapping move, a ` +
+              `combination which is banned in generation ${format.gen}.`);
+        }
+      }
+
+      // Baton Pass Clause (partial)
+      if (rules.clauses.has('Baton Pass') && moveTable['batonpass']) {
+        if (checkBatonPass(set, format, moveTable)) {
+          problems.push(
+              `${pokemon} can Baton Pass both Speed and a different stat, ` +
+              `which is banned by Baton Pass Clause.`);
+        }
+      }
+    } else {
+      problems.push(`${pokemon} must have at least one move.`);
+    }
+
+    // Hidden Power Type
+    let hpTypeSet: pkmn.Type|undefined;
+    if (set.hpType) {
+      hpTypeSet = (set.hpType.charAt(0).toUpperCase() + set.hpType.slice(1)) as
+          pkmn.Type;
+      if (!pkmn.Types.hiddenPowerIVs(hpTypeSet!)) {
+        problems.push(
+            `${pokemon}'s Hidden Power type (${set.hpType}) is invalid.`);
+      }
+    }
+    const hpType: pkmn.Type|undefined = hpTypeSet || hpTypeMove;
+    if (hpType) {
+      if (hpType !== hpTypeMove) {
+        problems.push(
+            `${pokemon}'s set Hidden Power type of ${
+                set.hpType} does not match ` +
+            `its move's Hidden Power type of ${hpTypeMove}.`);
+      } else {
+        const canBottleCap = (format.gen >= 7 && level === 100);
+        const hpTypeIVs: pkmn.Type =
+            pkmn.Types.hiddenPower(set.ivs, format.gen)!.type;
+        if (!canBottleCap && hpTypeIVs !== hpType) {
+          problems.push(
+              `${pokemon} has Hidden Power ${hpType}, but its IVs are ` +
+              `for Hidden Power ${hpTypeIVs}.`);
+        }
+        if (hpType === 'Fighting' && format.gen >= 6 &&
+            isLegendary(species, set.shiny)) {
+          problems.push(
+              `${pokemon} must not have Hidden Power Fighting because it starts ` +
+              `with 3 perfect IVs because it's a ${format.gen} legendary.`);
+        }
       }
     }
 
