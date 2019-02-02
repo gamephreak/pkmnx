@@ -44,8 +44,98 @@ type PokemonSources = {
   fastCheck?: true;
 };
 
+type WriteableSet =
+    Partial<{-readonly[k in keyof pkmn.PokemonSet] -?: pkmn.PokemonSet[k]}>;
+
+const PIKACHU_COSPLAY: {[k: string]: string} = {
+  meteormash: 'Pikachu-Rock-Star', iciclecrash: 'Pikachu-Belle',
+  drainingkiss: 'Pikachu-Pop-Star', electricterrain: 'Pikachu-PhD',
+  flyingpress: 'Pikachu-Libre'};
+
+function maxFemaleAtkDVs(s: Species): number {
+  return 0; // TODO 2,3,6,7,10,11,14,15 for shiny
+}
+
 export class Sets extends pkmn.Sets {
+
+  static canonicalize(s: pkmn.PokemonSet, gen: pkmn.Generation = 7): pkmn.PokemonSet {
+    const species = Species.get(s.species, gen);
+    if (!species) return s;
+
+    const set: WriteableSet = s;
+    if (set.name === set.species) set.name = undefined;
+
+    if (gen < 2) {
+      set.item = undefined;
+      set.shiny = undefined;
+    }
+
+    if (gen < 3) {
+      set.ability = undefined;
+      set.nature = undefined;
+    } else {
+      if (!set.nature) set.nature = 'Serious';
+      // TODO ensure first ability is set!
+      if (!set.ability) set.ability = '';
+    }
+
+    if (gen === 2) {
+      // BUG: if HP was selected and altered the IVs we won't autocorrect.
+      const untouched = !Object.values(set.ivs).find(iv => pkmn.Stats.itod(iv) !== 15);
+      if (untouched) {
+        if (set.gender && set.gender === 'F') {
+          set.ivs.atk = pkmn.Stats.dtoi(maxFemaleAtkDVs(species));
+        }
+        if (set.shiny) {
+          // NOTE: maxFemaleAtkDVs already sets an atk IV compatible with shiny.
+          set.ivs.def = set.ivs.spe = set.ivs.spa = set.ivs.spd = 10;
+        }
+        set.ivs.hp = pkmn.Stats.getHPDV(set.ivs);
+      }
+
+      const hasSD = !!set.moves.find(m => pkmn.toID(m) === 'swordsdance');
+      if (species.name == 'Marowak' &&
+        pkmn.toID(set.item) === 'thickclub' &&
+        hasSD && (!set.level || set.level === 100)) {
+
+        const ivs = pkmn.Stats.itod(set.ivs.atk) * 2;
+        let evs = set.evs.atk;
+        while (evs > 0 && 2 * 80 + ivs + Math.floor(evs / 4) + 5 > 255) {
+          evs -= 4;
+        }
+        set.evs.atk = evs;
+      }
+    }
+
+    // Modify species based on Item/Move/Ability.
+    if (set.item) {
+      const item = Items.get(set.item, gen);
+      if (item) {
+        if (item.forcedForme && species.name === Species.get(item.forcedForme, gen)!.baseSpecies) {
+          set.species = item.forcedForme;
+        } else if (item.megaEvolves === species.name) {
+          set.species = Species.get(item.megaStone!, gen)!.name;
+        }
+      }
+    }
+    if (species.name === 'Pikachu-Cosplay') {
+      const move = set.moves.find(m => PIKACHU_COSPLAY[pkmn.toID(m)]);
+      if (move) set.species = PIKACHU_COSPLAY[move];
+    }
+    if (species.name === 'Greninja' && pkmn.toID(set.ability) === 'battlebond') {
+      set.species = 'Greninja-Ash';
+    } else if (species.name === 'Rockruff' && pkmn.toID(set.ability) === 'owntempo') {
+      set.species = 'Rockruff-Dusk';
+    }
+
+    // NOTE: Safe as all of our transformations in this method preserve the
+    // required structure of pkmn.PokemonSet.
+    return set as pkmn.PokemonSet;
+  }
+
   static validate(set: pkmn.PokemonSet, format: pkmn.Format): string[] {
+    set = Sets.canonicalize(set);
+
     const rules = Rules.get(format);
     if (!rules) {
       return [`${format} is not a valid format.`];
@@ -59,9 +149,19 @@ export class Sets extends pkmn.Sets {
       ];
     }
 
+    if (set.name) {
+      const namedSpecies = Species.get(set.name); // NOTE: *any* generation
+      if (namedSpecies && namedSpecies.name.toLowerCase() === set.name.toLowerCase()) {
+        problems.push(
+          `${set.name}'s is illegal as a ${species.name} cannot `+
+          `impersonate a ${namedSpecies.name}.`)
+      }
+    }
+
     const problems: string[] = [];
     const pokemon = set.name || set.species;
-    if (rules.isBanned('Species', species.id)) {
+    if (rules.isBanned('Species', species.id) ||
+      rules.isBanned('Species', pkmn.toID(species.baseSpecies))) {
       problems.push(
           `${pokemon}'s species is banned in generation ` +
           `${format.gen} ${format.tier}.`);
@@ -248,10 +348,10 @@ export class Sets extends pkmn.Sets {
       }
     }
 
-    let isHidden = false; // TODO is this necessary?
     const learnsetData: PokemonSources = {
       sources: [],
       sourcesBefore: format.gen,
+      isHidden: false
     };
 
     // Ability
@@ -270,7 +370,9 @@ export class Sets extends pkmn.Sets {
               `${ability.name} is banned in generation ` +
               `${format.gen} ${format.tier}.`);
         }
-        const abilities = species.abilities!;
+        const abilities = species.abilities!; // TODO what about megas
+        // TODO handle autofixed forme abilities (use first non-illegal ability
+        // of base)
         if (!Object.values(abilities).includes(ability.name)) {
           problems.push(`${pokemon} can't have ${ability.name}.`);
         }
@@ -281,7 +383,7 @@ export class Sets extends pkmn.Sets {
         }
 
         if (ability.name === abilities['H']) {
-          isHidden = true;
+          learnsetData.isHidden = true;
 
           const speciesName = pkmn.Species.getName(set.species)!;
           if (species.unreleasedHidden) {
@@ -338,7 +440,6 @@ export class Sets extends pkmn.Sets {
         problems.push(`${pokemon} has more than four moves.`);
       }
       const moveTable: {[k: string]: pkmn.Move} = {};
-      // BUG: Gen 2 Marowak w/ Swords Dance?
       for (const m of set.moves) {
         const move = pkmn.Moves.get(m, format.gen);
         if (!move) {
