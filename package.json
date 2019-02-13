@@ -1,12 +1,12 @@
 {
-  "name": "pkmnx",
+  "name": "@pkmn.cc/datax",
   "version": "0.0.1",
-  "description": "Extensions to pkmn",
+  "description": "Extensions to @pkmn.cc/data",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gamephreak/pkmnx.git"
+    "url": "git+https://github.com/pkmn-cc/datax.git"
   },
   "keywords": [
     "Pokémon"
@@ -14,7 +14,7 @@
   "author": "Kirk Scheibelhut",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/gamephreak/pkmnx/issues"
+    "url": "https://github.com/pkmn-cc/datax/issues"
   },
   "dependencies": {
     "@types/node": "^10.12.18"
