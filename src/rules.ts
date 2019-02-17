@@ -212,7 +212,7 @@ const RULES: {[format: string]: Rules} = {
   'gen4uu': new Rules('gen4uu', STANDARD_MODS, STANDARD_CLAUSES),
   'gen4nu': new Rules('gen4nu', STANDARD_MODS, STANDARD_CLAUSES),
   'gen4lc': new Rules('gen4lc', STANDARD_MODS, STANDARD_CLAUSES, {
-    moves: IDSet('dragonrage', 'sonicboom'),
+    moves: IDSet('dragonrage', 'hypnosis', 'sonicboom'),
     items: IDSet('berryjuice', 'deepseatooth')
   }),
   'gen3uber': new Rules(

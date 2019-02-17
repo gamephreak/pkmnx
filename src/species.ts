@@ -26,25 +26,30 @@ type MoveSource = string;
 export type EventInfo = {
   readonly gen: pkmn.Generation;
   readonly level?: number;
-  readonly shiny?: true | 1;
+  readonly shiny?: boolean | 1;
   readonly gender?: pkmn.Gender;
   readonly nature?: string;
   readonly ivs?: Readonly<Partial<pkmn.StatsTable>>;
   readonly perfectIVs?: number;
   readonly isHidden?: boolean;
   readonly abilities?: Readonly<string[]>;
+  readonly maxEggMoves?: number,
   readonly moves?: Readonly<string[]>;
   readonly pokeball?: string;
   readonly from?: string;
 };
 
 export interface Species extends pkmn.Species {
+  readonly canHatch?: boolean;
   readonly eggGroups?: Readonly<string[]>;
   readonly genderRatio?: {M: number, F: number};
+  readonly evoType?: 'trade' | 'stone' | 'levelMove' | 'levelExtra';
   readonly evoLevel?: number;
+  readonly evoMove?: pkmn.ID;
   readonly maleOnlyHidden?: boolean;
   readonly unreleasedHidden?: boolean;
   readonly eventOnly?: boolean;
+  readonly encounters?: Readonly<EventInfo[]>;
   readonly eventPokemon?: Readonly<EventInfo[]>;
   readonly learnset?: Readonly<{[k: string]: MoveSource[]}>;
   readonly incompatibleMoves?: Readonly<Array<Readonly<pkmn.ID[]>>>;
